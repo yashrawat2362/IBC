@@ -15,7 +15,7 @@ use frame_support::{
 use scale_info::TypeInfo;
 
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
-enum Votes {
+pub enum Votes {
 	Yes,
 	No,
 }
@@ -77,6 +77,30 @@ pub mod pallet {
 		#[pallet::call_index(0)]
 		#[pallet::weight(10_000)]
 		pub fn request_to_join(origin: OriginFor<T>, who: T::AccountId) -> DispatchResult {
+			Ok(())
+		}
+
+		#[pallet::call_index(1)]
+		#[pallet::weight(10_000)]
+		pub fn add_into_dao_user(origin: OriginFor<T>, who: T::AccountId) -> DispatchResult {
+			Ok(())
+		}
+
+		#[pallet::call_index(2)]
+		#[pallet::weight(10_000)]
+		pub fn propose_proposal(origin: OriginFor<T>, proposal: T::Hash) -> DispatchResult {
+			Ok(())
+		}
+
+		#[pallet::call_index(3)]
+		#[pallet::weight(10_000)]
+		pub fn approve_proposal(origin: OriginFor<T>, proposal: T::Hash, approve: Votes) -> DispatchResult {
+			Ok(())
+		}
+
+		#[pallet::call_index(4)]
+		#[pallet::weight(10_000)]
+		pub fn check_status_of_proposal(origin: OriginFor<T>, proposal: T::Hash) -> DispatchResult {
 			Ok(())
 		}
 	}
