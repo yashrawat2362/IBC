@@ -5,9 +5,30 @@
 /// <https://docs.substrate.io/reference/frame-pallets/>
 pub use pallet::*;
 
+use frame_support::{
+	codec::{Decode, Encode},
+	inherent::Vec,
+	sp_runtime::{
+		RuntimeDebug,
+	},
+};
+use scale_info::TypeInfo;
+
+#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+enum Votes {
+	Yes,
+	No,
+}
+
+
+#[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
+pub struct Vote <AccountId>{
+	total_yes: Vec<AccountId>,
+	total_no: Vec<AccountId>,
+}
+
 #[frame_support::pallet]
 pub mod pallet {
-	use frame_support::inherent::Vec;
 	use super::*;
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
@@ -28,6 +49,15 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn memberrequested)]
 	pub type MemberRequested<T: Config> = StorageValue<_, Vec<T::AccountId>, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn daousers)]
+	pub type DaoUsers<T: Config> = StorageValue<_, Vec<T::AccountId>, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn proposal)]
+	pub type Proposal<T: Config> = StorageMap<_, Identity, T::Hash, Vote<T::AccountId>, OptionQuery>;
+
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
