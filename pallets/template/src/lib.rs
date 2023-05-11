@@ -32,6 +32,7 @@ pub mod pallet {
 	use super::*;
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
+	use crate::Error::MemberAlreadyRequested;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -62,12 +63,15 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		sdfdf,
+		MemberRequestedToJoin {
+			who: T::AccountId,
+		},
 	}
 
 	// Errors inform users that something went wrong.
 	#[pallet::error]
 	pub enum Error<T> {
+		MemberAlreadyRequested,
 	}
 
 	#[pallet::call]
@@ -76,7 +80,17 @@ pub mod pallet {
 		/// storage and emits an event. This function must be dispatched by a signed extrinsic.
 		#[pallet::call_index(0)]
 		#[pallet::weight(10_000)]
-		pub fn request_to_join(origin: OriginFor<T>, who: T::AccountId) -> DispatchResult {
+		pub fn request_to_join(origin: OriginFor<T>) -> DispatchResult {
+			let who = ensure_signed(origin.clone())?;
+
+			let mut all_members = MemberRequested::<T>::get();
+			let index = all_members.binary_search(&who).err().ok_or(Error::<T>::MemberAlreadyRequested)?;
+
+			all_members.insert(index, who.clone());
+			MemberRequested::<T>::put(all_members);
+
+			Self::deposit_event(Event::<T>::MemberRequestedToJoin {who});
+
 			Ok(())
 		}
 
