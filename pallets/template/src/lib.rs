@@ -8,9 +8,7 @@ pub use pallet::*;
 use frame_support::{
 	codec::{Decode, Encode},
 	inherent::Vec,
-	sp_runtime::{
-		RuntimeDebug,
-	},
+	sp_runtime::RuntimeDebug,
 };
 use scale_info::TypeInfo;
 
@@ -20,9 +18,8 @@ pub enum Votes {
 	No,
 }
 
-
 #[derive(PartialEq, Eq, Clone, Encode, Decode, RuntimeDebug, TypeInfo)]
-pub struct Vote <AccountId>{
+pub struct Vote<AccountId> {
 	total_yes: Vec<AccountId>,
 	total_no: Vec<AccountId>,
 }
@@ -30,9 +27,9 @@ pub struct Vote <AccountId>{
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
+	use crate::Error::MemberAlreadyRequested;
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
-	use crate::Error::MemberAlreadyRequested;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -44,7 +41,6 @@ pub mod pallet {
 	pub trait Config: frame_system::Config {
 		/// Because this pallet emits events, it depends on the runtime's definition of an event.
 		type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
-
 	}
 
 	#[pallet::storage]
@@ -57,15 +53,13 @@ pub mod pallet {
 
 	#[pallet::storage]
 	#[pallet::getter(fn proposal)]
-	pub type Proposal<T: Config> = StorageMap<_, Identity, T::Hash, Vote<T::AccountId>, OptionQuery>;
-
+	pub type Proposal<T: Config> =
+		StorageMap<_, Identity, T::Hash, Vote<T::AccountId>, OptionQuery>;
 
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		MemberRequestedToJoin {
-			who: T::AccountId,
-		},
+		MemberRequestedToJoin { who: T::AccountId },
 	}
 
 	// Errors inform users that something went wrong.
@@ -84,12 +78,15 @@ pub mod pallet {
 			let who = ensure_signed(origin.clone())?;
 
 			let mut all_members = MemberRequested::<T>::get();
-			let index = all_members.binary_search(&who).err().ok_or(Error::<T>::MemberAlreadyRequested)?;
+			let index = all_members
+				.binary_search(&who)
+				.err()
+				.ok_or(Error::<T>::MemberAlreadyRequested)?;
 
 			all_members.insert(index, who.clone());
 			MemberRequested::<T>::put(all_members);
 
-			Self::deposit_event(Event::<T>::MemberRequestedToJoin {who});
+			Self::deposit_event(Event::<T>::MemberRequestedToJoin { who });
 
 			Ok(())
 		}
@@ -108,7 +105,11 @@ pub mod pallet {
 
 		#[pallet::call_index(3)]
 		#[pallet::weight(10_000)]
-		pub fn approve_proposal(origin: OriginFor<T>, proposal: T::Hash, approve: Votes) -> DispatchResult {
+		pub fn approve_proposal(
+			origin: OriginFor<T>,
+			proposal: T::Hash,
+			approve: Votes,
+		) -> DispatchResult {
 			Ok(())
 		}
 
