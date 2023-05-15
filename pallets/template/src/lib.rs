@@ -57,11 +57,6 @@ pub mod pallet {
 	pub type Proposal<T: Config> =
 		StorageMap<_, Identity, T::Hash, Vote<T::AccountId>, OptionQuery>;
 
-	#[pallet::storage]
-	#[pallet::getter(fn proposaltime)]
-	pub type ProposalTime<T: Config> =
-	StorageMap<_, Identity, T::BlockNumber, T::Hash, OptionQuery>;
-
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -76,22 +71,6 @@ pub mod pallet {
 		MemberAlreadyPresentInDao,
 	}
 
-	#[pallet::hooks]
-	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-		fn on_initialize(n: BlockNumberFor<T>) -> Weight {
-			let is_proposal_expire = ProposalTime::<T>::contains_key(n);
-
-			if is_proposal_expire {
-				let Propsal_id = ProposalTime::<T>::get(n).unwrap();
-				ProposalTime::<T>::remove(n);
-				Self::deposit_event(Event::ProposalIdRemoved{
-					id: Propsal_id,
-				})
-			}
-
-			Weight::zero()
-		}
-	}
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
@@ -152,22 +131,6 @@ pub mod pallet {
 		#[pallet::call_index(4)]
 		#[pallet::weight(10_000)]
 		pub fn check_status_of_proposal(origin: OriginFor<T>, proposal: T::Hash) -> DispatchResult {
-			Ok(())
-		}
-
-		#[pallet::call_index(5)]
-		#[pallet::weight(10_000)]
-		pub fn set_proposal_time(origin: OriginFor<T>, proposal: T::Hash, time_duration_in_days: u32) -> DispatchResult {
-
-			ensure_signed(origin.clone())?;
-
-			let prod_block_per_sec = 6;
-			let block_per_day = 14_400;
-			let total_block = block_per_day * time_duration_in_days;
-
-			let mut expire_block =  frame_system::Pallet::<T>::block_number() + total_block.into();
-
-			ProposalTime::<T>::insert(expire_block, proposal);
 			Ok(())
 		}
 
