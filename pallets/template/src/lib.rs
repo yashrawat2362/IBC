@@ -27,9 +27,7 @@ pub struct Vote<AccountId> {
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use crate::Error::MemberAlreadyRequested;
 	use frame_support::pallet_prelude::*;
-	use frame_support::traits::OnTimestampSet;
 	use frame_system::pallet_prelude::*;
 
 	#[pallet::pallet]
@@ -45,8 +43,8 @@ pub mod pallet {
 	}
 
 	#[pallet::storage]
-	#[pallet::getter(fn memberrequested)]
-	pub type MemberRequested<T: Config> = StorageValue<_, Vec<T::AccountId>, ValueQuery>;
+	#[pallet::getter(fn memberrequestedfordao)]
+	pub type MemberRequestedForDao<T: Config> = StorageValue<_, Vec<T::AccountId>, ValueQuery>;
 
 	#[pallet::storage]
 	#[pallet::getter(fn daousers)]
@@ -62,6 +60,7 @@ pub mod pallet {
 	pub enum Event<T: Config> {
 		MemberRequestedToJoin { who: T::AccountId },
 		MemberAddedToDao { who: T::AccountId },
+		ProposedProposal {proposal_id: T::Hash},
 	}
 
 	// Errors inform users that something went wrong.
@@ -81,14 +80,14 @@ pub mod pallet {
 		pub fn request_to_join(origin: OriginFor<T>) -> DispatchResult {
 			let who = ensure_signed(origin.clone())?;
 
-			let mut all_members = MemberRequested::<T>::get();
+			let mut all_members = MemberRequestedForDao::<T>::get();
 			let index = all_members
 				.binary_search(&who)
 				.err()
 				.ok_or(Error::<T>::MemberAlreadyRequested)?;
 
 			all_members.insert(index, who.clone());
-			MemberRequested::<T>::put(all_members);
+			MemberRequestedForDao::<T>::put(all_members);
 
 			Self::deposit_event(Event::<T>::MemberRequestedToJoin { who });
 
@@ -114,7 +113,18 @@ pub mod pallet {
 
 		#[pallet::call_index(2)]
 		#[pallet::weight(10_000)]
-		pub fn propose_proposal(origin: OriginFor<T>, proposal: T::Hash) -> DispatchResult {
+		pub fn propose_proposal(origin: OriginFor<T>, proposal_id: T::Hash) -> DispatchResult {
+			let who = ensure_signed(origin.clone())?;
+
+			let votes = Vote {
+				total_yes : Vec::new(),
+				total_no : Vec::new(),
+			};
+
+			Proposal::<T>::insert(proposal_id, votes);
+			Self::deposit_event(Event::ProposedProposal{
+				proposal_id
+			});
 			Ok(())
 		}
 
@@ -125,6 +135,12 @@ pub mod pallet {
 			proposal: T::Hash,
 			approve: Votes,
 		) -> DispatchResult {
+
+			let who = ensure_signed(origin)?;
+
+			let all_dao_users = DaoUsers::<T>::get();
+
+			// ensure(all_dao_user.contain(who), Error::<T>::MemberNotPresentInDao);
 			Ok(())
 		}
 
