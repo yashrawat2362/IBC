@@ -1,5 +1,9 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+
+// Documentation...
+
+
 /// Edit this file to define custom logic or remove it if it is not needed.
 /// Learn more about FRAME and the core library of Substrate FRAME pallets:
 /// <https://docs.substrate.io/reference/frame-pallets/>
@@ -29,6 +33,7 @@ pub mod pallet {
 	use super::*;
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
+	use crate::Event::ProposedProposal;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -61,6 +66,13 @@ pub mod pallet {
 		MemberRequestedToJoin { who: T::AccountId },
 		MemberAddedToDao { who: T::AccountId },
 		ProposedProposal {proposal_id: T::Hash},
+		ProposalVoted{
+			who: T::AccountId,
+			proposal_id: T::Hash,
+			recent_vote: Votes,
+			total_yes: Vec<T::AccountId>,
+			total_no : Vec<T::AccountId>,
+		}
 	}
 
 	// Errors inform users that something went wrong.
@@ -68,6 +80,8 @@ pub mod pallet {
 	pub enum Error<T> {
 		MemberAlreadyRequested,
 		MemberAlreadyPresentInDao,
+		MemberNotPresentInDao,
+		InvalidProposal,
 	}
 
 
@@ -102,9 +116,13 @@ pub mod pallet {
 			let mut all_dao_member = DaoUsers::<T>::get();
 			let index = all_dao_member.binary_search(&who).err().ok_or(Error::<T>::MemberAlreadyPresentInDao)?;
 
+			// Need to check if member is not present in member request storage.
+
 			all_dao_member.insert(index, who.clone());
 
 			DaoUsers::<T>::put(all_dao_member);
+
+			// need to remove this member from requestmembertodao storage.
 
 			Self::deposit_event(Event::<T>::MemberAddedToDao {who});
 
@@ -122,6 +140,7 @@ pub mod pallet {
 			};
 
 			Proposal::<T>::insert(proposal_id, votes);
+			// need to add who in event.
 			Self::deposit_event(Event::ProposedProposal{
 				proposal_id
 			});
@@ -132,7 +151,7 @@ pub mod pallet {
 		#[pallet::weight(10_000)]
 		pub fn approve_proposal(
 			origin: OriginFor<T>,
-			proposal: T::Hash,
+			proposal_id: T::Hash,
 			approve: Votes,
 		) -> DispatchResult {
 
@@ -140,7 +159,52 @@ pub mod pallet {
 
 			let all_dao_users = DaoUsers::<T>::get();
 
-			// ensure(all_dao_user.contain(who), Error::<T>::MemberNotPresentInDao);
+			ensure!(all_dao_users.contains(&who), Error::<T>::MemberNotPresentInDao);
+
+
+
+			match approve {
+				Votes::Yes => {
+					Proposal::<T>::mutate(&proposal_id, |mut info| {
+
+						let total_votes = info.as_mut().unwrap();
+						let mut total_yes_votes = &mut total_votes.total_yes;
+						let mut total_no_votes = &mut total_votes.total_no;
+
+						&total_yes_votes.push(who.clone());
+
+						Self::deposit_event(Event::<T>::ProposalVoted{
+							who,
+							proposal_id,
+							recent_vote: approve,
+							total_yes: total_yes_votes.clone(),
+							total_no : total_no_votes.clone(),
+						});
+					});
+
+
+				}
+				Votes::No => {
+					Proposal::<T>::mutate(&proposal_id, |mut info| {
+
+						let total_votes = info.as_mut().unwrap();
+						let mut total_yes_votes = &mut total_votes.total_yes;
+						let mut total_no_votes = &mut total_votes.total_no;
+
+						&total_no_votes.push(who.clone());
+
+						Self::deposit_event(Event::<T>::ProposalVoted{
+							who,
+							proposal_id,
+							recent_vote: approve,
+							total_yes: total_yes_votes.clone(),
+							total_no : total_no_votes.clone(),
+						});
+					});
+				}
+			}
+
+
 			Ok(())
 		}
 
