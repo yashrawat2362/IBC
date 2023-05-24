@@ -33,6 +33,7 @@ pub mod pallet {
 	use super::*;
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
+	use crate::Error::MemberAlreadyRequested;
 	use crate::Event::ProposedProposal;
 
 	#[pallet::pallet]
@@ -82,18 +83,19 @@ pub mod pallet {
 		MemberAlreadyPresentInDao,
 		MemberNotPresentInDao,
 		InvalidProposal,
+		MemberNotRequested,
 	}
-
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-		/// An example dispatchable that takes a singles value as a parameter, writes the value to
-		/// storage and emits an event. This function must be dispatched by a signed extrinsic.
+
+		/// Any member can request to join the dao member group
 		#[pallet::call_index(0)]
 		#[pallet::weight(10_000)]
 		pub fn request_to_join(origin: OriginFor<T>) -> DispatchResult {
 			let who = ensure_signed(origin.clone())?;
 
+			// Check if it also requested..
 			let mut all_members = MemberRequestedForDao::<T>::get();
 			let index = all_members
 				.binary_search(&who)
@@ -108,21 +110,32 @@ pub mod pallet {
 			Ok(())
 		}
 
+		/// Add the requested member in the dao members group.
+		/// Only Sudo can perform this operation
 		#[pallet::call_index(1)]
 		#[pallet::weight(10_000)]
 		pub fn add_requested_user_into_dao_member(origin: OriginFor<T>, who: T::AccountId) -> DispatchResult {
 			ensure_root(origin)?;
 
+			// Check if who is present in the dao_member group already.
 			let mut all_dao_member = DaoUsers::<T>::get();
 			let index = all_dao_member.binary_search(&who).err().ok_or(Error::<T>::MemberAlreadyPresentInDao)?;
 
-			// Need to check if member is not present in member request storage.
+			// Check if member is not present in member request storage.
+			let mut all_requested_members = MemberRequestedForDao::<T>::get();
+			let index = all_requested_members
+				.binary_search(&who)
+				.ok()
+				.ok_or(Error::<T>::MemberNotRequested)?;
 
 			all_dao_member.insert(index, who.clone());
 
 			DaoUsers::<T>::put(all_dao_member);
 
-			// need to remove this member from requestmembertodao storage.
+			// Remove this member from MemberRequestedForDao storage.
+			all_requested_members.remove(index);
+			MemberRequestedForDao::<T>::put(all_requested_members);
+
 
 			Self::deposit_event(Event::<T>::MemberAddedToDao {who});
 
