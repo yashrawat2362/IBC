@@ -66,7 +66,7 @@ pub mod pallet {
 	pub enum Event<T: Config> {
 		MemberRequestedToJoin { who: T::AccountId },
 		MemberAddedToDao { who: T::AccountId },
-		ProposedProposal {proposal_id: T::Hash},
+		ProposedProposal {who: T::AccountId, proposal_id: T::Hash},
 		ProposalVoted{
 			who: T::AccountId,
 			proposal_id: T::Hash,
@@ -142,6 +142,8 @@ pub mod pallet {
 			Ok(())
 		}
 
+		/// Anyone can propose the proposal.
+
 		#[pallet::call_index(2)]
 		#[pallet::weight(10_000)]
 		pub fn propose_proposal(origin: OriginFor<T>, proposal_id: T::Hash) -> DispatchResult {
@@ -152,14 +154,17 @@ pub mod pallet {
 				total_no : Vec::new(),
 			};
 
+			// Initialize a new proposal
 			Proposal::<T>::insert(proposal_id, votes);
-			// need to add who in event.
+
 			Self::deposit_event(Event::ProposedProposal{
+				who,
 				proposal_id
 			});
 			Ok(())
 		}
 
+		/// Only Dao members are allowed to vote on a proposal.
 		#[pallet::call_index(3)]
 		#[pallet::weight(10_000)]
 		pub fn approve_proposal(
@@ -172,19 +177,19 @@ pub mod pallet {
 
 			let all_dao_users = DaoUsers::<T>::get();
 
+			// Check who is present in the dao or not.
 			ensure!(all_dao_users.contains(&who), Error::<T>::MemberNotPresentInDao);
 
-
-
+			// Caste vote on a proposal
 			match approve {
 				Votes::Yes => {
 					Proposal::<T>::mutate(&proposal_id, |mut info| {
 
 						let total_votes = info.as_mut().unwrap();
-						let mut total_yes_votes = &mut total_votes.total_yes;
-						let mut total_no_votes = &mut total_votes.total_no;
+						let total_yes_votes = &mut total_votes.total_yes;
+						let total_no_votes = &mut total_votes.total_no;
 
-						&total_yes_votes.push(who.clone());
+						let _ = &total_yes_votes.push(who.clone());
 
 						Self::deposit_event(Event::<T>::ProposalVoted{
 							who,
@@ -204,7 +209,7 @@ pub mod pallet {
 						let mut total_yes_votes = &mut total_votes.total_yes;
 						let mut total_no_votes = &mut total_votes.total_no;
 
-						&total_no_votes.push(who.clone());
+						let _ = &total_no_votes.push(who.clone());
 
 						Self::deposit_event(Event::<T>::ProposalVoted{
 							who,
@@ -224,6 +229,7 @@ pub mod pallet {
 		#[pallet::call_index(4)]
 		#[pallet::weight(10_000)]
 		pub fn check_status_of_proposal(origin: OriginFor<T>, proposal: T::Hash) -> DispatchResult {
+
 			Ok(())
 		}
 
