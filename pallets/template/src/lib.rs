@@ -136,7 +136,6 @@ pub mod pallet {
 			all_requested_members.remove(index);
 			MemberRequestedForDao::<T>::put(all_requested_members);
 
-
 			Self::deposit_event(Event::<T>::MemberAddedToDao {who});
 
 			Ok(())
