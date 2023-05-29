@@ -73,6 +73,12 @@ pub mod pallet {
 			recent_vote: Votes,
 			total_yes: Vec<T::AccountId>,
 			total_no : Vec<T::AccountId>,
+		},
+		ApprovedProposal {
+			proposal_id: T::Hash,
+		},
+		ProposalNotApproved{
+			proposal_id: T::Hash,
 		}
 	}
 
@@ -227,8 +233,21 @@ pub mod pallet {
 
 		#[pallet::call_index(4)]
 		#[pallet::weight(10_000)]
-		pub fn check_status_of_proposal(origin: OriginFor<T>, proposal: T::Hash) -> DispatchResult {
+		pub fn check_status_of_proposal(origin: OriginFor<T>, proposal_id: T::Hash) -> DispatchResult {
+			let all_dao_user = DaoUsers::<T>::get();
+			let threshold = (all_dao_user.len() as u32 * 2) / 3;
 
+			let all_votes = Proposal::<T>::get(proposal_id).ok_or(Error::<T>::InvalidProposal)?;
+
+			let yes_votes = all_votes.total_yes.len() as u32;
+
+			if yes_votes >= threshold {
+				Self::deposit_event(Event::<T>::ApprovedProposal {proposal_id})
+			}
+
+			else {
+				Self::deposit_event(Event::<T>::ProposalNotApproved {proposal_id})
+			}
 			Ok(())
 		}
 
