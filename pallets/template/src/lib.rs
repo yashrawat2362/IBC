@@ -1,9 +1,5 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-
-// Documentation...
-
-
 /// Edit this file to define custom logic or remove it if it is not needed.
 /// Learn more about FRAME and the core library of Substrate FRAME pallets:
 /// <https://docs.substrate.io/reference/frame-pallets/>
@@ -31,10 +27,9 @@ pub struct Vote<AccountId> {
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
+	use crate::{Error::MemberAlreadyRequested, Event::ProposedProposal};
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
-	use crate::Error::MemberAlreadyRequested;
-	use crate::Event::ProposedProposal;
 
 	#[pallet::pallet]
 	#[pallet::generate_store(pub(super) trait Store)]
@@ -64,22 +59,29 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		MemberRequestedToJoin { who: T::AccountId },
-		MemberAddedToDao { who: T::AccountId },
-		ProposedProposal {who: T::AccountId, proposal_id: T::Hash},
-		ProposalVoted{
+		MemberRequestedToJoin {
+			who: T::AccountId,
+		},
+		MemberAddedToDao {
+			who: T::AccountId,
+		},
+		ProposedProposal {
+			who: T::AccountId,
+			proposal_id: T::Hash,
+		},
+		ProposalVoted {
 			who: T::AccountId,
 			proposal_id: T::Hash,
 			recent_vote: Votes,
 			total_yes: Vec<T::AccountId>,
-			total_no : Vec<T::AccountId>,
+			total_no: Vec<T::AccountId>,
 		},
 		ApprovedProposal {
 			proposal_id: T::Hash,
 		},
-		ProposalNotApproved{
+		ProposalNotApproved {
 			proposal_id: T::Hash,
-		}
+		},
 	}
 
 	// Errors inform users that something went wrong.
@@ -94,7 +96,6 @@ pub mod pallet {
 
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
-
 		/// Any member can request to join the dao member group
 		#[pallet::call_index(0)]
 		#[pallet::weight(10_000)]
@@ -120,12 +121,18 @@ pub mod pallet {
 		/// Only Sudo can perform this operation
 		#[pallet::call_index(1)]
 		#[pallet::weight(10_000)]
-		pub fn add_requested_user_into_dao_member(origin: OriginFor<T>, who: T::AccountId) -> DispatchResult {
+		pub fn add_requested_user_into_dao_member(
+			origin: OriginFor<T>,
+			who: T::AccountId,
+		) -> DispatchResult {
 			ensure_root(origin)?;
 
 			// Check if who is present in the dao_member group already.
 			let mut all_dao_member = DaoUsers::<T>::get();
-			let index = all_dao_member.binary_search(&who).err().ok_or(Error::<T>::MemberAlreadyPresentInDao)?;
+			let index = all_dao_member
+				.binary_search(&who)
+				.err()
+				.ok_or(Error::<T>::MemberAlreadyPresentInDao)?;
 
 			// Check if member is not present in member request storage.
 			let mut all_requested_members = MemberRequestedForDao::<T>::get();
@@ -142,7 +149,7 @@ pub mod pallet {
 			all_requested_members.remove(index);
 			MemberRequestedForDao::<T>::put(all_requested_members);
 
-			Self::deposit_event(Event::<T>::MemberAddedToDao {who});
+			Self::deposit_event(Event::<T>::MemberAddedToDao { who });
 
 			Ok(())
 		}
@@ -154,18 +161,12 @@ pub mod pallet {
 		pub fn propose_proposal(origin: OriginFor<T>, proposal_id: T::Hash) -> DispatchResult {
 			let who = ensure_signed(origin.clone())?;
 
-			let votes = Vote {
-				total_yes : Vec::new(),
-				total_no : Vec::new(),
-			};
+			let votes = Vote { total_yes: Vec::new(), total_no: Vec::new() };
 
 			// Initialize a new proposal
 			Proposal::<T>::insert(proposal_id, votes);
 
-			Self::deposit_event(Event::ProposedProposal{
-				who,
-				proposal_id
-			});
+			Self::deposit_event(Event::ProposedProposal { who, proposal_id });
 			Ok(())
 		}
 
@@ -177,7 +178,6 @@ pub mod pallet {
 			proposal_id: T::Hash,
 			approve: Votes,
 		) -> DispatchResult {
-
 			let who = ensure_signed(origin)?;
 
 			let all_dao_users = DaoUsers::<T>::get();
@@ -189,51 +189,49 @@ pub mod pallet {
 			match approve {
 				Votes::Yes => {
 					Proposal::<T>::mutate(&proposal_id, |mut info| {
-
 						let total_votes = info.as_mut().unwrap();
 						let total_yes_votes = &mut total_votes.total_yes;
 						let total_no_votes = &mut total_votes.total_no;
 
 						let _ = &total_yes_votes.push(who.clone());
 
-						Self::deposit_event(Event::<T>::ProposalVoted{
+						Self::deposit_event(Event::<T>::ProposalVoted {
 							who,
 							proposal_id,
 							recent_vote: approve,
 							total_yes: total_yes_votes.clone(),
-							total_no : total_no_votes.clone(),
+							total_no: total_no_votes.clone(),
 						});
 					});
-
-
-				}
+				},
 				Votes::No => {
 					Proposal::<T>::mutate(&proposal_id, |mut info| {
-
 						let total_votes = info.as_mut().unwrap();
 						let mut total_yes_votes = &mut total_votes.total_yes;
 						let mut total_no_votes = &mut total_votes.total_no;
 
 						let _ = &total_no_votes.push(who.clone());
 
-						Self::deposit_event(Event::<T>::ProposalVoted{
+						Self::deposit_event(Event::<T>::ProposalVoted {
 							who,
 							proposal_id,
 							recent_vote: approve,
 							total_yes: total_yes_votes.clone(),
-							total_no : total_no_votes.clone(),
+							total_no: total_no_votes.clone(),
 						});
 					});
-				}
+				},
 			}
-
 
 			Ok(())
 		}
 
 		#[pallet::call_index(4)]
 		#[pallet::weight(10_000)]
-		pub fn check_status_of_proposal(origin: OriginFor<T>, proposal_id: T::Hash) -> DispatchResult {
+		pub fn check_status_of_proposal(
+			origin: OriginFor<T>,
+			proposal_id: T::Hash,
+		) -> DispatchResult {
 			let all_dao_user = DaoUsers::<T>::get();
 			let threshold = (all_dao_user.len() as u32 * 2) / 3;
 
@@ -242,14 +240,11 @@ pub mod pallet {
 			let yes_votes = all_votes.total_yes.len() as u32;
 
 			if yes_votes >= threshold {
-				Self::deposit_event(Event::<T>::ApprovedProposal {proposal_id})
-			}
-
-			else {
-				Self::deposit_event(Event::<T>::ProposalNotApproved {proposal_id})
+				Self::deposit_event(Event::<T>::ApprovedProposal { proposal_id })
+			} else {
+				Self::deposit_event(Event::<T>::ProposalNotApproved { proposal_id })
 			}
 			Ok(())
 		}
-
 	}
 }
