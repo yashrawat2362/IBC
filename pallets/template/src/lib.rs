@@ -107,6 +107,7 @@ pub mod pallet {
 				.err()
 				.ok_or(Error::<T>::MemberAlreadyRequested)?;
 
+
 			all_members.insert(index, who.clone());
 			MemberRequestedForDao::<T>::put(all_members);
 
