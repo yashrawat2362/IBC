@@ -187,7 +187,7 @@ pub mod pallet {
 			// Caste vote on a proposal
 			match approve {
 				Votes::Yes => {
-					Proposal::<T>::mutate(&proposal_id, |mut info| {
+					Proposal::<T>::mutate(&proposal_id, | info| {
 						let total_votes = info.as_mut().unwrap();
 						let total_yes_votes = &mut total_votes.total_yes;
 						let total_no_votes = &mut total_votes.total_no;
@@ -204,10 +204,10 @@ pub mod pallet {
 					});
 				},
 				Votes::No => {
-					Proposal::<T>::mutate(&proposal_id, |mut info| {
+					Proposal::<T>::mutate(&proposal_id, | info| {
 						let total_votes = info.as_mut().unwrap();
-						let mut total_yes_votes = &mut total_votes.total_yes;
-						let mut total_no_votes = &mut total_votes.total_no;
+						let total_yes_votes = &mut total_votes.total_yes;
+						let total_no_votes = &mut total_votes.total_no;
 
 						let _ = &total_no_votes.push(who.clone());
 
