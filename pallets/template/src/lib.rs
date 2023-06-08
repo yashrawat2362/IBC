@@ -1,6 +1,9 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 
+///!
+
+
 pub use pallet::*;
 
 use frame_support::{
@@ -170,6 +173,7 @@ pub mod pallet {
 		}
 
 		/// Only Dao members are allowed to vote on a proposal.
+		///! Origin should be signed.
 		#[pallet::call_index(3)]
 		#[pallet::weight(10_000)]
 		pub fn approve_proposal(
@@ -225,6 +229,8 @@ pub mod pallet {
 			Ok(())
 		}
 
+		///! origin should be signed
+		///! If 2/3 votes are in favour of proposal then the proposal will approve.
 		#[pallet::call_index(4)]
 		#[pallet::weight(10_000)]
 		pub fn check_status_of_proposal(
