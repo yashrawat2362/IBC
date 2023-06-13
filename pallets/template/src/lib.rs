@@ -24,12 +24,10 @@ pub struct Vote<AccountId> {
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use crate::{Error::MemberAlreadyRequested, Event::ProposedProposal};
 	use frame_support::pallet_prelude::*;
 	use frame_system::pallet_prelude::*;
 
 	#[pallet::pallet]
-	#[pallet::generate_store(pub(super) trait Store)]
 	#[pallet::without_storage_info]
 	pub struct Pallet<T>(_);
 
@@ -126,7 +124,7 @@ pub mod pallet {
 
 			// Check if who is present in the dao_member group already.
 			let mut all_dao_member = DaoUsers::<T>::get();
-			let index = all_dao_member
+			let _index = all_dao_member
 				.binary_search(&who)
 				.err()
 				.ok_or(Error::<T>::MemberAlreadyPresentInDao)?;
