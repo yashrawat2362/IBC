@@ -51,6 +51,11 @@ pub mod pallet {
 	pub type Proposal<T: Config> =
 		StorageMap<_, Identity, T::Hash, Vote<T::AccountId>, OptionQuery>;
 
+	#[pallet::storage]
+	#[pallet::getter(fn voted_users)]
+	pub type VotedUsers<T: Config> =
+	StorageValue<_, Vec<T::AccountId>, ValueQuery>;
+
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
@@ -87,6 +92,7 @@ pub mod pallet {
 		MemberNotPresentInDao,
 		InvalidProposal,
 		MemberNotRequested,
+		DuplicateVote,
 	}
 
 	#[pallet::call]
@@ -120,7 +126,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			who: T::AccountId,
 		) -> DispatchResult {
-			ensure_root(origin)?;
+			// ensure_root(origin)?;
 
 			// Check if who is present in the dao_member group already.
 			let mut all_dao_member = DaoUsers::<T>::get();
@@ -181,6 +187,10 @@ pub mod pallet {
 			// Check who is present in the dao or not.
 			ensure!(all_dao_users.contains(&who), Error::<T>::MemberNotPresentInDao);
 
+			let mut all_users = VotedUsers::<T>::get();
+			ensure!(!all_users.contains(&who), Error::<T>::DuplicateVote);
+			let current_user = who.clone();
+
 			// Caste vote on a proposal
 			match approve {
 				Votes::Yes => {
@@ -218,6 +228,8 @@ pub mod pallet {
 					});
 				},
 			}
+			all_users.push(current_user.clone());
+			VotedUsers::<T>::put(all_users);
 
 			Ok(())
 		}
@@ -230,6 +242,7 @@ pub mod pallet {
 			origin: OriginFor<T>,
 			proposal_id: T::Hash,
 		) -> DispatchResult {
+			ensure_signed(origin)?;
 			let all_dao_user = DaoUsers::<T>::get();
 			let threshold = (all_dao_user.len() as u32 * 2) / 3;
 
