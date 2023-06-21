@@ -187,6 +187,7 @@ pub mod pallet {
 			// Check who is present in the dao or not.
 			ensure!(all_dao_users.contains(&who), Error::<T>::MemberNotPresentInDao);
 
+			// Prevent double voting
 			let mut all_users = VotedUsers::<T>::get();
 			ensure!(!all_users.contains(&who), Error::<T>::DuplicateVote);
 			let current_user = who.clone();
