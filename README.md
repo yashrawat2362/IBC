@@ -1,1 +1,3 @@
-![AltHack Delhi Banner Template](https://github.com/yashrawat2362/IBC/assets/126330519/15a79c05-7b57-47e2-acc7-54fb4e7f47e5)
+# Voting for India
+
+![AltHack Delhi Banner Template](https://github.com/yashrawat2362/IBC/assets/126330519/13972969-0fce-4d6e-8bc1-0523a7fedb02)
